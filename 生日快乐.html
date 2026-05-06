@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Happy Birthday</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+</head>
+<body>
+    <div id="birthday-container" style="
+        display: none; 
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1000;
+        /* 毛玻璃背景，让背景模糊一点更有高级感 */
+        backdrop-filter: blur(4px);
+        background: rgba(255, 255, 255, 0.1);
+        justify-content: center;
+        align-items: center;
+        perspective: 1000px;
+    ">
+        <div id="birthday-card" style="
+            text-align: center;
+            opacity: 0;
+            transform: translateY(30px) rotateX(-10deg);
+            transition: all 1s cubic-bezier(0.22, 1, 0.36, 1);
+        ">
+            <!-- 现代渐变文字 -->
+            <h1 style="
+                font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+                font-size: clamp(40px, 8vw, 100px); /* 响应式字体大小 */
+                font-weight: 900;
+                margin: 0;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #ff6a88 100%);
+                background-clip: text;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                letter-spacing: -2px;
+                filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1));
+            ">
+                Happy Birthday xxx!
+            </h1>
+            <!-- 装饰副标题 -->
+            <p style="
+                color: #666;
+                letter-spacing: 5px;
+                text-transform: uppercase;
+                font-size: 14px;
+                margin-top: 10px;
+            ">
+                Wishing you the best day ever
+            </p>
+        </div>
+    </div>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* 防止出现滚动条 */
+        }
+        canvas {
+            display: block; /* 去除画布底部的微小间隙 */
+        }
+    </style>
+    <script>
+        const Body = Matter.Body;
+        const bodiesToAdd = [];
+        data = [['#c2b7b1', '#c3b7b7', '#2a3c64', '#132651', '#102655', '#0c1e50', '#0f194c', '#080f45', '#204385', '#305aa4', '#3960ad', '#375caa', '#345baa', '#335cab', '#355db2', '#3760b0', '#3861b1', '#3760b0', '#2e57a6', '#24264c', '#252f52', '#232b50', '#273155', '#272f54', '#293259', '#293158', '#252e57', '#30355d', '#222a51', '#2e549b', '#2d56a5', '#2952a2', '#2d56a5', '#345aab', '#122d7a', '#243f90', '#25499d', '#385eaf', '#e1d8d3', '#e3d6ce'], ['#c2b8af', '#505269', '#172d54', '#0f204c', '#0e1b48', '#0c1443', '#0b1546', '#2a4c93', '#244e98', '#2954a3', '#2b54a4', '#2653a4', '#2a57ac', '#2b58ad', '#2957ac', '#3867b9', '#3666ba', '#3766b8', '#3362b4', '#17244e', '#192241', '#283256', '#293357', '#2a3458', '#2c365a', '#2d375a', '#2b3558', '#2e385b', '#232f45', '#2e59a7', '#2553a1', '#2653a4', '#2856a4', '#264a98', '#163786', '#1b4091', '#1e469b', '#2a52a7', '#afbada', '#e5dccd'], ['#c2b1aa', '#32375f', '#0e1644', '#080c2f', '#070d2f', '#0b103a', '#192150', '#5a6895', '#30569d', '#2e55a4', '#244d9c', '#254fa1', '#184190', '#2b5aac', '#2b59ae', '#2653a8', '#3563b8', '#3866bb', '#436dc3', '#416abc', '#3b63ab', '#355294', '#2d3661', '#2b3a63', '#252e4b', '#121234', '#2d3858', '#2e3c61', '#395a90', '#3660b4', '#2651a0', '#25549c', '#1f3878', '#1d3b84', '#193986', '#1b4194', '#20489d', '#2654a9', '#2e5caa', '#5d7fbe'], ['#bdb0aa', '#18264b', '#0d1a44', '#0b1741', '#101849', '#121f53', '#1a214d', '#d6cfd7', '#ddd3de', '#d0cde2', '#30528f', '#224795', '#254e9d', '#204699', '#234c9b', '#1f4c9d', '#2c56aa', '#2e5cb2', '#3564b4', '#3664b9', '#2650a2', '#2751a7', '#2650a4', '#214e9f', '#244ea2', '#2a4fa0', '#264fa1', '#264fa1', '#2c4c99', '#142e6b', '#21366d', '#334b6f', '#7590ae', '#153282', '#19408f', '#1c4297', '#1e469b', '#244ea0', '#1e489c', '#244ea4'], ['#aea9a6', '#132146', '#222f59', '#233364', '#263868', '#172e64', '#1b3069', '#0b144d', '#0d144b', '#0e184d', '#d5d2db', '#cdc9d7', '#3a5082', '#254997', '#234a97', '#305aa6', '#335daf', '#2350a1', '#1d4a9b', '#244ca1', '#1f479c', '#1e489e', '#1e489e', '#1e469d', '#204699', '#1e4497', '#204697', '#204999', '#010c1e', '#110a12', '#141118', '#1a1d24', '#a2b6d7', '#1d4094', '#1b3f93', '#1c4192', '#1f479c', '#224a9f', '#224aa1', '#1f48a0'], ['#8d878b', '#4f4752', '#746a72', '#655c61', '#575155', '#43485c', '#2e3d68', '#283f75', '#182f72', '#1a2f72', '#d0c7cc', '#e2d9dc', '#ddd7d7', '#ccc7cd', '#dcd2dd', '#b2b6d1', '#345aa3', '#25509e', '#1b4192', '#1d4695', '#1e469e', '#1f479c', '#21499e', '#1e489e', '#204498', '#214697', '#1f4596', '#1e469b', '#0c0910', '#0e0e16', '#17141b', '#858289', '#9eb7d5', '#274b9f', '#1b3f93', '#1d4195', '#1c3e97', '#1c4094', '#2353a7', '#2453ab'], ['#bfb2a9', '#b7aca6', '#8f8180', '#a0928f', '#807875', '#736967', '#908885', '#666271', '#434c6b', '#1a3069', '#1a2964', '#101b53', '#09194d', '#112562', '#e1ded9', '#e5dddb', '#e6dcda', '#a5afd3', '#274790', '#264d9c', '#1f4495', '#1e4797', '#214a9a', '#2650a2', '#1f499f', '#1f479e', '#1f489a', '#1f449c', '#030a14', '#0f1015', '#121117', '#3e3b44', '#9eb5d4', '#224b9d', '#183b8c', '#1a3d91', '#17378a', '#1b3f93', '#214fa4', '#2351a7'], ['#ddcec7', '#e0cfc7', '#cdbeb9', '#bbaea8', '#baaca9', '#c7bcb8', '#cdc2be', '#d1c3c0', '#999089', '#797470', '#515970', '#192f61', '#162e6e', '#152a6b', '#0d1337', '#99969d', '#d0c6cf', '#c2bac5', '#14183e', '#c9c9d3', '#204999', '#22489b', '#204999', '#274d9e', '#214c9b', '#1e489e', '#2348a0', '#234da3', '#0d1c43', '#0d0c12', '#0e1118', '#171719', '#adc3ea', '#2956a7', '#142f7c', '#1b3b8e', '#1b4196', '#1f499f', '#204ca3', '#214aa2'], ['#cfc2ba', '#ded2c4', '#d6c8bd', '#d4c6bb', '#dbcac2', '#d6c8c5', '#d9cbc8', '#dfd2ca', '#d8cfc6', '#d6ccc2', '#b8ada9', '#847e7e', '#50586d', '#253a71', '#131f5b', '#081645', '#061348', '#0e1c59', '#13215e', '#e8dfe0', '#babed9', '#264d9a', '#1b4494', '#1d4293', '#1b4192', '#20499b', '#1e469d', '#234ba0', '#2752a0', '#091239', '#0f1219', '#131418', '#9eb8dd', '#2653a6', '#0c2579', '#0e2f7e', '#1e4799', '#1e489e', '#1e4aa1', '#1c469c'], ['#d8ccc0', '#ded0c3', '#dbcec5', '#e3d6cd', '#e9dfd6', '#ddcec7', '#ded5ce', '#e7e0d6', '#e5dcd3', '#e3d9d0', '#ddcec7', '#cfc6bd', '#beb6ab', '#8c8783', '#4d5369', '#1f2d6a', '#132c6e', '#13276e', '#0d1d59', '#d5ced6', '#e6dedb', '#c6c8d5', '#274e99', '#26499b', '#1a3e8a', '#1c3f90', '#1c3f90', '#1e4495', '#204a96', '#25509f', '#14264c', '#080f17', '#5174aa', '#3261b1', '#234495', '#153278', '#254da2', '#20489f', '#1f479e', '#1e4298'], ['#d5c5b8', '#daccbf', '#decebf', '#e1d4c4', '#e3d9cd', '#e6dcd0', '#eae2d7', '#eae0d7', '#ebe1d7', '#ece0d2', '#ecdfcf', '#e9d9ca', '#dfd8c8', '#d9cdc1', '#c5b9ad', '#8a8484', '#444d74', '#172d69', '#142668', '#090a38', '#d6d5d3', '#e4dfdb', '#b2b7d7', '#224893', '#1c408e', '#1d4091', '#183c8a', '#1b3e8f', '#193e8f', '#1f4596', '#2352a0', '#4d70b0', '#436bb1', '#234d9f', '#2c56aa', '#04094d', '#234899', '#214599', '#1f4399', '#1c4192'], ['#ccbeb1', '#e5d9c9', '#e1dbc3', '#e3d9cf', '#e2dbcb', '#e5dbcf', '#e3d9cf', '#ebe2d1', '#eadccf', '#eddfd2', '#eddfd2', '#e8d8cb', '#e2d9ca', '#e1d5c5', '#e1d1c2', '#e0d0c1', '#b8aaa1', '#676479', '#22386a', '#162568', '#0a134a', '#020e38', '#161f56', '#b7bbd4', '#274b97', '#1b4090', '#1a3e8c', '#1a3e8c', '#1b3e8f', '#1c4192', '#254ea0', '#2a58a6', '#325cae', '#204999', '#224fa0', '#142a76', '#17327f', '#1f4494', '#1b4192', '#1d4197'], ['#e3d5c8', '#e2d6c6', '#e9d9ca', '#ebddd0', '#e9d9ca', '#ebdece', '#efe3d5', '#ecded1', '#e4d6c9', '#e2d4c7', '#dfd1c4', '#d7cbbd', '#dfd1c6', '#e2d5c5', '#e5d5c5', '#e4d7c7', '#e4d3c3', '#d6caba', '#7a7571', '#464b69', '#182c6b', '#14276b', '#112466', '#dad6d5', '#aeb4ca', '#1b3f8b', '#1f438f', '#1a3c86', '#193a87', '#193c90', '#1d4696', '#20489d', '#244f9e', '#2b5ba7', '#2350a3', '#224c9e', '#031964', '#1a3b8a', '#1b3f8d', '#193f90'], ['#dccec1', '#e9ddcd', '#ecdccd', '#ecded1', '#eadacb', '#e5d9c9', '#e4d8ca', '#ded0c3', '#d9cbbe', '#d4c2b6', '#cebcb0', '#cdbdb0', '#cfc1b4', '#d9ccbc', '#e3d3c3', '#e3dac9', '#e3d8c2', '#e3d6c3', '#ddd0c0', '#887b73', '#525866', '#1b316b', '#0d2467', '#79778d', '#dfd9db', '#7c8baa', '#1a3e8a', '#173885', '#163786', '#193a8b', '#1a3d8f', '#204697', '#1f499d', '#254fa1', '#2755a3', '#2b59a7', '#2c59aa', '#143886', '#183988', '#173a8c'], ['#e7d9cc', '#ecded1', '#ecded1', '#ebdecd', '#e4d7c4', '#e6d7c4', '#e3d6c3', '#e4d7c7', '#e9dccc', '#e6d9c9', '#e0d3c3', '#cebeb1', '#aa9e90', '#c4b6a9', '#d8c8b8', '#e1d4c3', '#e4d8c2', '#e5d8c5', '#ecdfcf', '#e2d4c7', '#8c7e75', '#454859', '#233a70', '#152559', '#92929e', '#dfd6d9', '#8f94be', '#1d418d', '#153683', '#183583', '#163683', '#173b89', '#1c418f', '#20499b', '#2855a6', '#2653a4', '#2554a4', '#2c5aa7', '#11317a', '#153486'], ['#e3d5c8', '#ebddd0', '#ecded1', '#ecded1', '#e8dccc', '#e1d6c4', '#e9dccc', '#ecded1', '#e2d4c7', '#c6baae', '#b2a69a', '#685b53', '#463e3b', '#716559', '#ccbeb3', '#ddd0bd', '#e7dac7', '#eee2cc', '#f0e3d2', '#eee0d3', '#ded0c3', '#625950', '#030406', '#223c6d', '#192c64', '#1a2e6d', '#16285a', '#c2c5d8', '#1e4485', '#193b85', '#1a3689', '#183986', '#183986', '#183c88', '#1e4495', '#214897', '#224fa2', '#2b59a7', '#112c73', '#173887'], ['#e4d6c9', '#e5d7ca', '#ebddd0', '#ecded1', '#e0d4c4', '#d8c8b8', '#e0d2c5', '#dccec1', '#d3c5ba', '#b9aca4', '#180d0b', '#190f0e', '#20171c', '#1d1311', '#cabeae', '#e8dbcb', '#efe2d1', '#efe3d5', '#f5e9d9', '#f7ebdb', '#f9ebde', '#cbbeab', '#080403', '#05040c', '#213b6c', '#253d7b', '#182e6a', '#d0cee4', '#c2c2dc', '#204385', '#1c4289', '#193b85', '#193b85', '#1e428e', '#1d418f', '#214495', '#214895', '#244ea2', '#0b2369', '#0e2568'], ['#e4d6c9', '#e3d7c7', '#e2d5c5', '#e2d4c7', '#ded0c3', '#cec0b3', '#d0c2b5', '#bfb1a4', '#b6a89d', '#ab9e96', '#3e3530', '#1c1210', '#2a1e1e', '#160b07', '#c5b9a9', '#f0dfd5', '#f3e5d8', '#f1e4d4', '#f7e7da', '#f5ecdd', '#f8eadd', '#f3e6d6', '#d8cabd', '#4d484c', '#333d56', '#1f386e', '#293f78', '#06113e', '#9d9fae', '#ded3db', '#516195', '#22478d', '#1c3e86', '#193e84', '#1a3f8d', '#1a3f8d', '#1d4696', '#2650a2', '#3d6aae', '#12296c'], ['#e3d6c3', '#e2d5c5', '#ded2c2', '#ded3bf', '#e1d4c4', '#dbcdc2', '#c5b7aa', '#d7c6bc', '#d7c9bc', '#d9ccbc', '#a4988a', '#2f261f', '#35281f', '#988c80', '#e8dccc', '#efdfcf', '#efdfcf', '#ecdfcf', '#f2e4d7', '#f8eadd', '#f3eadb', '#f1e8d9', '#f4e7d6', '#ddcfc2', '#5e4f52', '#333c59', '#243c6a', '#28356a', '#0b143d', '#0a133a', '#162161', '#112969', '#193e82', '#1d4288', '#1c408a', '#21428f', '#1e4594', '#244f9d', '#315caa', '#0b2967'], ['#e0d2c7', '#e0d4c4', '#e6d6c6', '#e1d4c3', '#e3d6c6', '#e4d9c5', '#eadfcd', '#e6daca', '#e3d5c8', '#d0c2b5', '#d1c4b4', '#d6c6b9', '#dac8bc', '#dbc9bb', '#e3d7cb', '#e3dbce', '#e3dbd0', '#eddfd2', '#ecdfcf', '#eee0d3', '#f3e5d8', '#f4e6d9', '#f3e6d5', '#eddfd2', '#dbcbbe', '#4c4650', '#334263', '#293b69', '#0b1b4f', '#132661', '#182e6a', '#213b76', '#1d3978', '#183980', '#1d418d', '#1e4393', '#1e4594', '#204796', '#204796', '#2a55a4'], ['#ded0c3', '#e3d6c6', '#e3d6c6', '#e5d8c7', '#e9decc', '#ecdfce', '#ebddd0', '#ebddd0', '#eee0d3', '#e4d7c7', '#cfc1b4', '#cabcb1', '#d9cbbe', '#e4d4c5', '#e2d5c5', '#e1d8c7', '#e1d8c9', '#e4d8cc', '#e1d3c6', '#e3d9cd', '#e6d8cb', '#f4e6d9', '#f4e6d9', '#f2e4d7', '#ecdfcf', '#e4d7c7', '#625c68', '#314067', '#1c3166', '#112560', '#192f6b', '#203a75', '#213e7a', '#25488c', '#1c408c', '#204595', '#214897', '#204796', '#204998', '#234c9b'], ['#ddcfc2', '#dccfbf', '#e6d7c4', '#ded2c4', '#ded2c2', '#e9d9c9', '#eadacd', '#e9ddcd', '#eddfd4', '#eddfd2', '#ded0c3', '#cfc1b6', '#daccbf', '#dacec0', '#ddd0bf', '#e3d3c3', '#e1d6c4', '#dccec1', '#e3d6c6', '#e5d9cd', '#e3d3c4', '#eaded0', '#f6eadc', '#f3e5d8', '#ebdece', '#e9d9ca', '#d6c9b9', '#3d3c4a', '#213965', '#1c356d', '#243d76', '#213b78', '#28427f', '#0b1d5f', '#234491', '#244798', '#214798', '#214696', '#204998', '#224b9a'], ['#d8cabd', '#d9cbc0', '#e0d4c4', '#dacebe', '#e0dbc8', '#e5d9c9', '#e6daca', '#e5dac6', '#e8dccc', '#e3d5c8', '#daccbf', '#d6c8bb', '#d1c3b6', '#cbbeb5', '#ddcfc2', '#ded5c6', '#dbd3c8', '#c7bbad', '#beafa8', '#c0afa7', '#ac9f97', '#cbbbae', '#e8d8cb', '#f4e6d9', '#efe2cf', '#e5d5c6', '#e0d2c7', '#8e847a', '#414254', '#263e6e', '#173066', '#192f6b', '#1e3372', '#19316f', '#061a57', '#1b3b84', '#1a3e88', '#1f4494', '#1f4897', '#204691'], ['#d4c6b9', '#ded0c3', '#d9cbc0', '#e6d9c9', '#e3d7c7', '#e4d8c8', '#d9cbbe', '#ded2c4', '#dbcbbe', '#d9c9bc', '#d2c2b5', '#beada3', '#beb2a6', '#cdc1b5', '#d7c9be', '#d2c8bc', '#bab0a6', '#64564d', '#3c2f27', '#392c24', '#42352d', '#453b31', '#998f83', '#ebddd0', '#f4e4d4', '#e7dac7', '#e1d4c4', '#c5b7ac', '#5c534a', '#484d53', '#1e2f65', '#1b2f6c', '#142c6c', '#28407e', '#0e2460', '#153373', '#1b4086', '#1c4187', '#234791', '#22488f'], ['#c3b5a8', '#cfc1b4', '#e6d9c9', '#dfd2c2', '#cabcaf', '#dbcdc0', '#dccec1', '#ddcfc2', '#ddd1c5', '#c7bbad', '#cac1b2', '#beb4aa', '#b6a9a0', '#bbb2ab', '#c0b8ad', '#aba293', '#433930', '#3a2d25', '#4b3e36', '#493b32', '#5e5047', '#4b3c35', '#473831', '#daccbf', '#ede0cf', '#e7daca', '#ded0c3', '#c4b6a9', '#73665d', '#635759', '#484852', '#22335e', '#173665', '#0b2363', '#29487f', '#112967', '#163673', '#133676', '#254a90', '#254b8a'], ['#c5b7aa', '#d6c8bb', '#dfd1c6', '#e0d3c3', '#d4c6b9', '#e3d5c8', '#dbcdc0', '#d6c8bb', '#bfb3a7', '#b2aa9f', '#b5afa3', '#c0b5af', '#b1a89f', '#b9afa6', '#b7ada3', '#93897f', '#31271e', '#362921', '#4b3e36', '#33241f', '#43362d', '#1c110d', '#362720', '#c7b9b0', '#eee1d1', '#e6d8cd', '#d8cabd', '#c3b1a3', '#ad9b8d', '#6e645b', '#665b55', '#4d4f4c', '#27355a', '#1c356e', '#3b518b', '#284080', '#1a3972', '#193b7a', '#1f4286', '#264d84'], ['#d4c2b6', '#dbcdc0', '#dfd3c7', '#e5dac8', '#e1d3c6', '#e1d3c6', '#dfd1c4', '#d6c8bd', '#b6afa5', '#948b86', '#938a83', '#a59e98', '#a29b91', '#a69f95', '#aba29b', '#a49d93', '#2c251d', '#201815', '#080300', '#211916', '#251d1a', '#090100', '#2b1e15', '#c1b5a9', '#e5d7ca', '#dccec1', '#d7c9bc', '#c6b4a6', '#b09e90', '#9b8e7e', '#8a7d75', '#706563', '#4b4a48', '#111f42', '#1c3264', '#070e3c', '#14285b', '#1d3978', '#234380', '#3f5273'], ['#dac8bc', '#dbcdc0', '#dfd3c3', '#eadece', '#eadccf', '#e5d7ca', '#dfd1c4', '#c9bbb2', '#aaa19c', '#807b78', '#75746f', '#a4a095', '#8e8c80', '#958e84', '#a0978e', '#9e958c', '#392f2d', '#1c1411', '#1c1211', '#19120c', '#1b1310', '#211716', '#2b1e18', '#bdafa4', '#d3c5b8', '#cbbdb0', '#d1c3b6', '#cab8aa', '#bbaa96', '#c7b7aa', '#c1b1a4', '#b0a295', '#7f756c', '#1e2339', '#212d55', '#091a46', '#112558', '#234279', '#264176', '#c5b8a7'], ['#d5c5b8', '#d3c5b8', '#d8cabd', '#e4d6c9', '#d7caba', '#dbcbbc', '#d9c8be', '#c6b9b3', '#9b9893', '#777374', '#6b666d', '#6d696a', '#888782', '#8d867c', '#8d877b', '#918a82', '#6e6663', '#3e3633', '#1c1012', '#1a0f0d', '#1c1411', '#443636', '#9b908a', '#c3b3a6', '#b8aa9d', '#c6b8ab', '#c1b5a7', '#ccbaac', '#e9dcc9', '#c1b1a1', '#c5b6a3', '#beaea1', '#b6aa9e', '#897e7c', '#121830', '#0f204e', '#1c3669', '#244379', '#415472', '#b7aa9a'], ['#c5b9ad', '#c7bbaf', '#d5c7bc', '#cec2b4', '#cec0b5', '#bcafa7', '#bcb3ae', '#b1aaa4', '#95908d', '#53535b', '#42454a', '#626166', '#6b6a6f', '#787473', '#79746e', '#807b75', '#726b65', '#5c5451', '#635b58', '#514946', '#302825', '#5e554e', '#726962', '#958c85', '#b3a598', '#bcaf9f', '#b1a494', '#dccbb7', '#e0d3c0', '#e8d6c2', '#d1c2af', '#b6a998', '#b8aa9d', '#b0a69c', '#5b5c6e', '#20376d', '#143268', '#264274', '#aa9d94', '#b5a895'], ['#bfb2a9', '#c4b6ad', '#c3b5ac', '#c4b3ab', '#bab0a7', '#b0a59f', '#998e92', '#5d5a63', '#6f7188', '#4a4b67', '#1e243e', '#282e46', '#3d4053', '#68656e', '#6f6969', '#6f6b68', '#65625d', '#625a57', '#4f4744', '#4c4442', '#2d2522', '#4b443e', '#5d504a', '#6c5f57', '#7a6e5e', '#948777', '#bdad9d', '#e6d5c1', '#ecddc8', '#e6d4c0', '#ddcbb7', '#c4b6a9', '#a3968e', '#ac9f96', '#6c6883', '#1c3973', '#213a72', '#344c70', '#b4a393', '#b3a693'], ['#bcafa6', '#b2a69a', '#baaea2', '#bdb2ac', '#a49a91', '#a79c9a', '#454e6b', '#375490', '#2f4e8e', '#102660', '#1b316a', '#112355', '#13244f', '#18223d', '#474553', '#565459', '#504e4f', '#494440', '#4a4740', '#544c4a', '#5a534d', '#5b544e', '#665d58', '#635852', '#675e4f', '#8f806d', '#e3d4bf', '#e9dac5', '#e7dcc6', '#e3d6c3', '#d1beb0', '#c9b8b0', '#988b85', '#9f9697', '#656984', '#1d386f', '#2d4372', '#c9bbb0', '#c9bbae', '#b2a594'], ['#b7ab9d', '#a89c90', '#b3a69d', '#b6a9a3', '#8e847b', '#746a6b', '#335187', '#274f8d', '#224889', '#1e3f84', '#1c4280', '#2a4b80', '#274873', '#0a1743', '#192648', '#090b20', '#1f1e26', '#1d1d25', '#2a252b', '#2f2e2c', '#3a3633', '#45423d', '#4e4b42', '#584f48', '#796d5f', '#d1c2af', '#e5d4c0', '#e3d4bf', '#ddcdbd', '#e6d5c3', '#c3b7a9', '#978883', '#918d8e', '#8f8c93', '#3c4a6f', '#28406e', '#b8a9a2', '#dbcebe', '#c3b5a8', '#c5b4a4'], ['#a0968a', '#a49a8e', '#b8afa6', '#91877e', '#82786c', '#7a7270', '#2d4c85', '#1c4283', '#1e4389', '#1d3e81', '#183a79', '#294982', '#20407d', '#20427f', '#1b3162', '#050e37', '#030d28', '#090e2b', '#0d1321', '#1f1f29', '#383431', '#49463f', '#57544b', '#625952', '#978b7d', '#d7c6b4', '#dfd0bb', '#e3d2be', '#d6c7b4', '#cbbbac', '#a69897', '#878296', '#7b7e8f', '#717485', '#3b4d75', '#8f8a8e', '#d8cbbb', '#e3d6c6', '#dcd0c0', '#c2b2a2'], ['#a29a8d', '#b8aea4', '#a2958c', '#847c71', '#85786f', '#7c7970', '#204379', '#1e4181', '#183e7f', '#16387f', '#143876', '#203d75', '#214883', '#1f4284', '#224585', '#143173', '#152a5f', '#15295c', '#1e3062', '#102254', '#101e3b', '#48413b', '#58544b', '#635a53', '#b7aa9a', '#cdbcb2', '#dac9b5', '#dbcbbc', '#cebaaf', '#817b87', '#6b6f88', '#384770', '#536080', '#6a6876', '#93877b', '#b3a696', '#e4d3c1', '#e3d7c9', '#e6d9c8', '#d7c7b8'], ['#9e958c', '#a0968c', '#958d82', '#80786d', '#7d746d', '#79716e', '#293d5e', '#18396f', '#193b7a', '#1b3a7d', '#15326e', '#0e2859', '#264683', '#23437e', '#264989', '#1f4087', '#1c3a76', '#1a336b', '#1f3870', '#213a72', '#203d77', '#3d4b6e', '#4e4946', '#6a605e', '#b6aca2', '#b1a599', '#beb0a7', '#b3a49d', '#787683', '#3b476d', '#32416a', '#304469', '#756e75', '#978881', '#b8aa9f', '#dbcebe', '#e3d6c3', '#e4d8c2', '#e1d4c4', '#dbc8b7'], ['#a2988e', '#978f84', '#8d8578', '#867e73', '#847b72', '#7d766c', '#747071', '#152e64', '#142f66', '#1d397a', '#1b3570', '#143060', '#214174', '#224178', '#1e407f', '#1a3c79', '#1e4185', '#1e3e7b', '#2a4685', '#284483', '#2d4a86', '#32497f', '#454454', '#716967', '#807b78', '#666167', '#6e6b72', '#56576c', '#3c4677', '#2f406c', '#635c6c', '#897b78', '#9a8a7b', '#d1c4b4', '#dacabb', '#dfd0bb', '#e2d6c0', '#e4d8c2', '#e2d5c2', '#e2d1bd'], ['#9b9187', '#918d81', '#958d82', '#989085', '#a9a196', '#7f7870', '#79726a', '#69686d', '#162b5a', '#112d5d', '#091e57', '#24406f', '#183362', '#163564', '#1f3d73', '#173a74', '#163c7d', '#284d91', '#1f4087', '#152e6e', '#203a77', '#2e4883', '#35476f', '#1f2c56', '#3b476f', '#25345b', '#293d62', '#323858', '#65696a', '#817368', '#908277', '#a89a8d', '#c4b4a5', '#d8c7bd', '#dfd3bd', '#e4d3bf', '#e4d3bf', '#e3d4c1', '#e5d6c3', '#e4d3c1'], ['#9a9488', '#a39b90', '#a39b90', '#b1a99e', '#a59d92', '#8a8076', '#797268', '#6d6562', '#5f5a54', '#1c2850', '#132857', '#1b335f', '#1e3a62', '#183360', '#153065', '#1b3769', '#1a3972', '#173979', '#204589', '#2d5392', '#173374', '#1f3972', '#324879', '#172c59', '#1c2a51', '#4e505c', '#6f6563', '#7a6d65', '#918879', '#ad9d8e', '#ad9c8a', '#bba99b', '#d0c0b1', '#d9c7b3', '#dbcfb9', '#e3d2be', '#e0cfbb', '#dfcdb7', '#e3d4bd', '#e3d0bf'], ['#a79a91', '#b9aca3', '#bbb1a7', '#b9aca3', '#b3a99f', '#93897f', '#7c786c', '#6e6a61', '#605c51', '#565550', '#4b4f50', '#1b284b', '#1a3763', '#193461', '#0d2c5a', '#18355f', '#1b3a69', '#143872', '#123974', '#12377b', '#234b89', '#234b7f', '#214371', '#635a5d', '#75695d', '#877a69', '#998d81', '#ac9f8e', '#b0a091', '#bfaf9f', '#c2b39c', '#d0c0a7', '#dbcbb2', '#deceb5', '#dfcfb6', '#e6d4be', '#e1d1b8', '#e3cfb6', '#e5d5bc', '#e3d1bb']]
+        const { Engine, Render, Runner, Bodies, Composite } = Matter;
+
+        function showBirthdayText() {
+            // 1. 寻找新版的 ID 容器
+            const container = document.getElementById('birthday-container');
+            const card = document.getElementById('birthday-card');
+
+            // 2. 加一个安全检查，如果还没加载出来就不会报错
+            if (!container || !card) {
+                console.error("找不到生日卡片容器，请检查 HTML 的 ID");
+                return;
+            }
+
+            // 3. 显示外层毛玻璃容器
+            container.style.display = 'flex';
+            
+            // 4. 这一步很关键：强制浏览器重绘，否则动画不会生效
+            void container.offsetWidth;
+
+            // 5. 触发卡片的入场动画（透明度变1，位移清零）
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0) rotateX(0)';
+        }
+
+
+
+        let autoExplodeTimer = null; // 用于保存定时器，方便随时开启或停止
+
+        // 开启底部随机爆炸喷泉startPopcornFountain(canvasWidth, canvasHeight, interval = 300)
+        // 参数：canvasWidth (屏幕宽度), canvasHeight (屏幕高度), interval (爆炸间隔毫秒)
+        function startPopcornFountain(canvasWidth, canvasHeight, interval = 300) {
+            // 防止重复开启定时器
+            if (autoExplodeTimer) clearInterval(autoExplodeTimer);
+
+            autoExplodeTimer = setInterval(() => {
+                // 1. X 坐标：在屏幕宽度内完全随机
+                const randomX = Math.random() * canvasWidth;
+                
+                // 2. Y 坐标：设置在屏幕最底部，甚至可以再往下一点 (例如 canvasHeight + 50)
+                // 这样爆炸的冲击波主要是向上的，能完美实现“抛起”效果
+                const bottomY = canvasHeight + 20; 
+
+                // 3. 触发爆炸，强度可以自己微调
+                const popStrength = 2.4; 
+                explode(randomX, bottomY, popStrength);
+
+            }, interval); // 每 interval 毫秒炸一次
+        }
+
+        function explode(x, y, strength) {
+            const bodies = Composite.allBodies(engine.world);
+
+            bodies.forEach(body => {
+                // 【关键修复】不要对静态物体（墙壁、地板）施加力，否则物理世界会出bug
+                if (body.isStatic) return;
+
+                const bodyX = body.position.x;
+                const bodyY = body.position.y;
+
+                let dx = bodyX - x;
+                let dy = bodyY - y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 1000 && distance > 0) {
+                    // 核心算法：平方衰减
+                    const force = (strength * 500) / (distance * distance); 
+
+                    const fx = (dx / distance) * force * body.mass;
+                    const fy = (dy / distance) * force * body.mass;
+
+                    Body.applyForce(body, body.position, { x: fx, y: fy });
+                    Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.2);
+                }
+            });
+        }
+
+        // 2. 创建物理引擎
+        const engine = Engine.create({
+            positionIterations: 150,
+            constraintIterations: 10,
+            positionIterations: 100// 默认是 6，调到 20 甚至更高可以极大缓解“变扁”现象
+        });
+
+        // 3. 创建渲染器，它会自动在 body 里生成一个 <canvas> 画布
+        const render = Render.create({
+            element: document.body,
+            engine: engine,
+            options: {
+                // 使用窗口的内部宽度和高度
+                width: window.innerWidth,
+                height: window.innerHeight,
+                wireframes: false,
+                // 可选：设置背景颜色
+                background: '#fffff0' 
+            }
+        });
+
+
+
+
+        const thickness = 50; // 墙的厚度
+        const offset = 20;
+        const wallOptions = {
+            isStatic: true,           // 墙壁不动
+            render: { visible: false }, // 不可见
+            friction: 1,              // 增加摩擦力
+            restitution: 0,           // 没有弹性（撞上去不反弹，防止弹飞）
+            density: 1000             // 增加密度（虽然是静止的，但在某些碰撞计算中有帮助）
+        };
+
+        const bottomWall = Bodies.rectangle(
+            window.innerWidth / 2,       // 1. x 坐标（中心点）
+            window.innerHeight + thickness / 2, // 2. y 坐标（中心点）
+            window.innerWidth+100,           // 3. 宽度
+            thickness,                   // 4. 高度
+            wallOptions                  // 5. 配置选项（如静止、不可见）
+        );
+        const leftWall = Bodies.rectangle(
+            0 - thickness / 2,           // 1. x 坐标（中心点）
+            window.innerHeight / 2,      // 2. y 坐标（中心点）
+            thickness,                   // 3. 宽度
+            window.innerHeight+50,          // 4. 高度
+            wallOptions                  // 5. 配置选项（如静止、不可见）
+        );
+        const rightWall = Bodies.rectangle(
+            window.innerWidth + thickness / 2, // 1. x 坐标（中心点）
+            window.innerHeight / 2,      // 2. y 坐标（中心点）
+            thickness,                   // 3. 宽度
+            window.innerHeight+50,          // 4. 高度
+            wallOptions                  // 5. 配置选项（如静止、不可见）
+        );
+        Composite.add(engine.world, [bottomWall, leftWall, rightWall]);
+
+        const reversedData = [...data].reverse();
+        const flatData = reversedData.flat(); 
+        const cols = data[0].length; // 获取图片的宽度（列数）
+
+        let currentIndex = 0;
+        const speed = 10; // 生成速度：每 10 毫秒生成一个
+
+        const timer = setInterval(() => {
+            if (currentIndex >= flatData.length) {
+                clearInterval(timer); // 全部生成完后停止定时器
+                console.log("图像生成完毕！");
+                return;
+            }
+ 
+
+            // 计算当前像素在矩阵中的行列位置
+            const r = Math.floor(currentIndex / cols); // 当前行
+            const c = currentIndex % cols;            // 当前列
+            const pixelColor = flatData[currentIndex];
+
+            // 3. 创建方块
+            const box = Bodies.rectangle(
+                330 + (c * 22), 
+                -20, 
+                20, 20, 
+                {
+                    restitution: 0.6,
+                    friction: 0.1,
+                    density: 0.002,
+                    render: { fillStyle: pixelColor }
+                }
+            );
+
+            Composite.add(engine.world, box);
+            
+            currentIndex++; // 下一个
+        }, speed);
+        render.canvas.addEventListener('mousedown', function(event) {
+            const rect = render.canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+
+            startPopcornFountain(window.innerWidth, window.innerHeight, interval = 300)
+            explode(mouseX, mouseY, 3);
+            
+        });
+        showBirthdayText();
+
+
+
+
+
+
+
+        Render.run(render);
+        window.addEventListener('resize', () => {
+            render.canvas.width = window.innerWidth;
+            render.canvas.height = window.innerHeight;
+        });
+        const runner = Runner.create();
+        Runner.run(runner, engine);
+        
+    </script>
+</body>
+</html>
